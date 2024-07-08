@@ -1,0 +1,107 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: "AWS::Serverless-2016-10-31"
+Description: AWS SAM template to deploy a Golang Lambda function connected to an AppSync GraphQL API.
+
+Resources:
+  # Lambda Function Resource
+  GraphQLLambdaFunction:
+    Type: "AWS::Serverless::Function"
+    Metadata:
+      BuildMethod: go1.x # Indicates the build method for the function
+    Properties:
+      Handler: bootstrap
+      Runtime: provided.al2
+      CodeUri: cmd/function
+      Tracing: Active
+      MemorySize: 128
+      Timeout: 30
+      Policies:
+        - AWSLambdaBasicExecutionRole
+      Environment:
+        Variables:
+          APPSYNC_API_ENDPOINT: !Ref GraphQLAPI
+
+  # AppSync GraphQL API Resource
+  GraphQLAPI:
+    Type: "AWS::AppSync::GraphQLApi"
+    Properties:
+      Name: "GolangGraphQLAPI"
+      AuthenticationType: API_KEY
+
+  # AppSync API Key Resource
+  GraphQLAPIKey:
+    Type: "AWS::AppSync::ApiKey"
+    Properties:
+      ApiId: !GetAtt GraphQLAPI.ApiId
+      Expires: 1747877779 # Example expiration timestamp for the API key
+
+  # Inline GraphQL Schema Resource
+  GraphQLSchema:
+    Type: "AWS::AppSync::GraphQLSchema"
+    Properties:
+      ApiId: !GetAtt GraphQLAPI.ApiId
+      Definition: |
+        type Query {
+          getExample(id: ID!): Example
+        }
+
+        type Example {
+          id: ID!
+          name: String!
+          description: String
+        }
+
+  GetExampleResolver:
+    Type: "AWS::AppSync::Resolver"
+    Properties:
+      ApiId: !GetAtt GraphQLAPI.ApiId
+      TypeName: "Query"
+      FieldName: "getExample"
+      DataSourceName: !GetAtt LambdaDataSource.Name
+      RequestMappingTemplate: |
+        {
+          "version": "2018-05-29",
+          "operation": "Invoke",
+          "payload": {
+              "id": $util.toJson($ctx.args.id)
+          }
+        }
+      ResponseMappingTemplate: |
+        $util.toJson($ctx.result)
+
+  # Data Source for connecting Lambda to AppSync
+  LambdaDataSource:
+    Type: "AWS::AppSync::DataSource"
+    Properties:
+      ApiId: !GetAtt GraphQLAPI.ApiId
+      Name: "LambdaDataSource"
+      Type: "AWS_LAMBDA"
+      LambdaConfig:
+        LambdaFunctionArn: !GetAtt GraphQLLambdaFunction.Arn
+      ServiceRoleArn: !GetAtt AppSyncLambdaServiceRole.Arn
+
+  # IAM Role for AppSync to invoke Lambda function
+  AppSyncLambdaServiceRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service: "appsync.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Policies:
+        - PolicyName: "AppSyncInvokeLambdaPolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action:
+                  - "lambda:InvokeFunction"
+                Resource: "*"
+
+Outputs:
+  GraphQLAPIEndpoint:
+    Value: !GetAtt GraphQLAPI.GraphQLUrl
+    Description: "URL of the AppSync GraphQL API"

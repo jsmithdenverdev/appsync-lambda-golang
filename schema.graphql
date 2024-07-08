@@ -1,0 +1,24 @@
+type Item {
+  id: ID!
+  name: String!
+}
+
+type Query {
+  readItem(id: ID!): Item
+  """
+  listItems(ids: [ID!]!): [Item]
+  """
+}
+
+"""
+type Mutation {
+  createItem(name: String!): Item
+}
+"""
+
+schema {
+  query: Query
+  """
+  mutation: Mutation
+  """
+}
