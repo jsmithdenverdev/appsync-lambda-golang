@@ -3,15 +3,17 @@ Transform: "AWS::Serverless-2016-10-31"
 Description: AWS SAM template to deploy a Golang Lambda function connected to an AppSync GraphQL API.
 
 Resources:
-  # Lambda Function Resource
-  GraphQLLambdaFunction:
+  ###############################################
+  # FUNCTIONS
+  ###############################################
+  CreateItemFunction:
     Type: "AWS::Serverless::Function"
     Metadata:
       BuildMethod: go1.x # Indicates the build method for the function
     Properties:
       Handler: bootstrap
       Runtime: provided.al2
-      CodeUri: cmd/function
+      CodeUri: cmd/create-item
       Tracing: Active
       MemorySize: 128
       Timeout: 30
@@ -21,43 +23,138 @@ Resources:
         Variables:
           APPSYNC_API_ENDPOINT: !Ref GraphQLAPI
 
-  # AppSync GraphQL API Resource
+  ReadItemFunction:
+    Type: "AWS::Serverless::Function"
+    Metadata:
+      BuildMethod: go1.x # Indicates the build method for the function
+    Properties:
+      Handler: bootstrap
+      Runtime: provided.al2
+      CodeUri: cmd/read-item
+      Tracing: Active
+      MemorySize: 128
+      Timeout: 30
+      Policies:
+        - AWSLambdaBasicExecutionRole
+      Environment:
+        Variables:
+          APPSYNC_API_ENDPOINT: !Ref GraphQLAPI
+
+  ListItemsFunction:
+    Type: "AWS::Serverless::Function"
+    Metadata:
+      BuildMethod: go1.x # Indicates the build method for the function
+    Properties:
+      Handler: bootstrap
+      Runtime: provided.al2
+      CodeUri: cmd/list-items
+      Tracing: Active
+      MemorySize: 128
+      Timeout: 30
+      Policies:
+        - AWSLambdaBasicExecutionRole
+      Environment:
+        Variables:
+          APPSYNC_API_ENDPOINT: !Ref GraphQLAPI
+
+  ###############################################
+  # APPSYNC API
+  ###############################################
   GraphQLAPI:
     Type: "AWS::AppSync::GraphQLApi"
     Properties:
       Name: "GolangGraphQLAPI"
       AuthenticationType: API_KEY
 
-  # AppSync API Key Resource
+  ###############################################
+  # APPSYNC API KEY
+  ###############################################
   GraphQLAPIKey:
     Type: "AWS::AppSync::ApiKey"
     Properties:
       ApiId: !GetAtt GraphQLAPI.ApiId
       Expires: 1747877779 # Example expiration timestamp for the API key
 
-  # Inline GraphQL Schema Resource
+  ###############################################
+  # APPSYNC SCHEMA
+  ###############################################
   GraphQLSchema:
     Type: "AWS::AppSync::GraphQLSchema"
     Properties:
       ApiId: !GetAtt GraphQLAPI.ApiId
       Definition: |
-        type Query {
-          getExample(id: ID!): Example
-        }
-
-        type Example {
-          id: ID!
+        type Item {
           name: String!
-          description: String
         }
 
-  GetExampleResolver:
+        type Query {
+          item(id: ID!): Item
+          items: [Item!]!
+        }
+
+        type Mutation {
+          createItem(name: String!): Item!
+        }
+
+  ###############################################
+  # APPSYNC DATA SOURCES
+  ###############################################
+  CreateItemLambdaDataSource:
+    Type: "AWS::AppSync::DataSource"
+    Properties:
+      ApiId: !GetAtt GraphQLAPI.ApiId
+      Name: "CreateItemLambdaDataSource"
+      Type: "AWS_LAMBDA"
+      LambdaConfig:
+        LambdaFunctionArn: !GetAtt CreateItemFunction.Arn
+      ServiceRoleArn: !GetAtt AppSyncLambdaServiceRole.Arn
+
+  ReadItemLambdaDataSource:
+    Type: "AWS::AppSync::DataSource"
+    Properties:
+      ApiId: !GetAtt GraphQLAPI.ApiId
+      Name: "ReadItemLambdaDataSource"
+      Type: "AWS_LAMBDA"
+      LambdaConfig:
+        LambdaFunctionArn: !GetAtt ReadItemFunction.Arn
+      ServiceRoleArn: !GetAtt AppSyncLambdaServiceRole.Arn
+
+  ListItemsLambdaDataSource:
+    Type: "AWS::AppSync::DataSource"
+    Properties:
+      ApiId: !GetAtt GraphQLAPI.ApiId
+      Name: "ListItemsLambdaDataSource"
+      Type: "AWS_LAMBDA"
+      LambdaConfig:
+        LambdaFunctionArn: !GetAtt ListItemsFunction.Arn
+      ServiceRoleArn: !GetAtt AppSyncLambdaServiceRole.Arn
+
+  ###############################################
+  # APPSYNC DATA RESOLVERS
+  ###############################################
+  CreateItemResolver:
+    Type: "AWS::AppSync::Resolver"
+    Properties:
+      ApiId: !GetAtt GraphQLAPI.ApiId
+      TypeName: "Mutation"
+      FieldName: "createItem"
+      DataSourceName: !GetAtt CreateItemLambdaDataSource.Name
+      RequestMappingTemplate: |
+        {
+          "version": "2018-05-29",
+          "operation": "Invoke",
+          "payload": $util.toJson($ctx.args.name)
+        }
+      ResponseMappingTemplate: |
+        $util.toJson($ctx.result)
+
+  ReadItemResolver:
     Type: "AWS::AppSync::Resolver"
     Properties:
       ApiId: !GetAtt GraphQLAPI.ApiId
       TypeName: "Query"
-      FieldName: "getExample"
-      DataSourceName: !GetAtt LambdaDataSource.Name
+      FieldName: "item"
+      DataSourceName: !GetAtt CreateItemLambdaDataSource.Name
       RequestMappingTemplate: |
         {
           "version": "2018-05-29",
@@ -69,18 +166,28 @@ Resources:
       ResponseMappingTemplate: |
         $util.toJson($ctx.result)
 
-  # Data Source for connecting Lambda to AppSync
-  LambdaDataSource:
-    Type: "AWS::AppSync::DataSource"
+  ListItemsResolver:
+    Type: "AWS::AppSync::Resolver"
     Properties:
       ApiId: !GetAtt GraphQLAPI.ApiId
-      Name: "LambdaDataSource"
-      Type: "AWS_LAMBDA"
-      LambdaConfig:
-        LambdaFunctionArn: !GetAtt GraphQLLambdaFunction.Arn
-      ServiceRoleArn: !GetAtt AppSyncLambdaServiceRole.Arn
+      TypeName: "Query"
+      FieldName: "items"
+      DataSourceName: !GetAtt CreateItemLambdaDataSource.Name
+      RequestMappingTemplate: |
+        {
+          "version": "2018-05-29",
+          "operation": "BatchInvoke",
+          "payload": {
+              "id": $util.toJson($ctx.args.id)
+          }
+        }
+      ResponseMappingTemplate: |
+        $util.toJson($ctx.result)
 
-  # IAM Role for AppSync to invoke Lambda function
+  ###############################################
+  # APPSYNC LAMBDA EXECUTION ROLE
+  # TODO: limit resource
+  ###############################################
   AppSyncLambdaServiceRole:
     Type: "AWS::IAM::Role"
     Properties:
