@@ -83,8 +83,16 @@ Resources:
     Properties:
       ApiId: !GetAtt GraphQLAPI.ApiId
       Definition: |
+        input CreateItemInput {
+          name: String!
+        }
+
         type Item {
           name: String!
+        }
+
+        type CreateItemPayload {
+          item: Item!
         }
 
         type Query {
@@ -93,7 +101,7 @@ Resources:
         }
 
         type Mutation {
-          createItem(name: String!): Item!
+          createItem(input: CreateItemInput!): CreateItemPayload!
         }
 
   ###############################################
@@ -143,10 +151,8 @@ Resources:
         {
           "version": "2018-05-29",
           "operation": "Invoke",
-          "payload": $util.toJson($ctx.args.name)
+          "payload": $util.toJson($ctx.args.input)
         }
-      ResponseMappingTemplate: |
-        $util.toJson($ctx.result)
 
   ReadItemResolver:
     Type: "AWS::AppSync::Resolver"
