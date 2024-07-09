@@ -2,6 +2,10 @@
 
 A sample AWS AppSync GraphQL API leveraging lambda functions as resolvers.
 
+## Why?
+
+GraphQL (when done right) is a fantastic way to build highly expressive API's. Having the flexibility to back resolvers using lambda functions unlocks a new level of customization and scalability. Using this approach we can independently scale any part of our API, giving us a huge amount of flexibility in performance tuning. AppSync allows us to define regular invoke and batch invoke resolvers, allowing us to write lambda functions that act as dataloaders, avoiding the N+1 query problem.
+
 ## GraphQL Schema
 
 The resulting GraphQL API has the following schema.
