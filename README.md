@@ -6,7 +6,11 @@ A sample AWS AppSync GraphQL API leveraging lambda functions as resolvers.
 
 GraphQL (when implemented correctly) is a fantastic way to design highly expressive API's. 
 
-With a bit of additional configuration, AWS AppSync allows us to define Lambda functions as resolvers, unlocking a new level of customization and scalability. Using this approach we can independently develop, deploy, and scale any resolver in our API, giving us a huge amount of flexibility in implementation and maintenance. And AWS AppSync allows us to perform regular and batch invocation of lambda resolvers, allowing us to write lambda functions that avoid the N + 1 query problem.
+With a bit of additional configuration, AWS AppSync allows us to define Lambda functions as resolvers, unlocking a new level of customization and scalability.
+
+Using this approach we can independently develop, deploy, and scale any resolver in our API, giving us a huge amount of flexibility in how we design and maintain our system.
+
+And AWS AppSync allows us to perform regular and batch invocation of lambda resolvers, allowing us to write lambda functions that avoid the N + 1 query problem.
 
 ## GraphQL Schema
 
