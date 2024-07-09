@@ -14,7 +14,7 @@ And AWS AppSync allows us to perform regular and batch invocation of lambda reso
 
 ## GraphQL Schema
 
-The resulting GraphQL API has the following schema.
+This sample GraphQL API has the following schema.
 
 ```graphql
 input CreateItemInput {
@@ -47,11 +47,11 @@ type Mutation {
 | Query    | `item`       | [ReadItemFunction](#readitemfunction)     | invoke       |
 | Query    | `items`      | [ListItemsFunction](#listitemsfunction)   | batch invoke |
 
-## Functions
+## Lambda Functions
 
 ### CreateItemFunction
 
-A lambda function serving the `createItem` mutation. Returns [`responses.CreateItem`](internal/responses/create_item.go) using the `Name` from [`requests.CreateItem`](internal/requests/create_item.go).
+Resolver for `createItem` mutation. Returns [`responses.CreateItem`](internal/responses/create_item.go) using the `Name` from [`requests.CreateItem`](internal/requests/create_item.go).
 
 | meta    | value                                                                |
 | ------- | -------------------------------------------------------------------- |
@@ -61,7 +61,7 @@ A lambda function serving the `createItem` mutation. Returns [`responses.CreateI
 
 ### ReadItemFunction
 
-A lambda function serving the `item` query. Returns [`responses.Item`](internal/responses/item.go).
+Resolver for `item` query. Returns [`responses.Item`](internal/responses/item.go).
 
 #### ⛔️ Note: Currently returns a not implemented error.
 
@@ -73,7 +73,7 @@ A lambda function serving the `item` query. Returns [`responses.Item`](internal/
 
 ### ListItemsFunction
 
-A lambda function serving the `items` query. Returns [`responses.Item[]`](internal/responses/item.go). This handler is invoked as a batch invoke and operates in a similar fashion to a data loader.
+Resolver for `items` query. Returns [`responses.Item[]`](internal/responses/item.go). This handler is invoked as a batch invoke and operates in a similar fashion to a data loader.
 
 #### ⛔️ Note: Currently returns a not implemented error.
 
