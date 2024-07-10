@@ -4,10 +4,10 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/google/uuid"
 	"github.com/jsmithdenverdev/appsync-lambda-golang/internal/models"
 )
@@ -26,14 +26,16 @@ type handleCreateItemDynamoDBClient interface {
 }
 
 type createItemRequest struct {
-	Name string   `json:"name"`
-	Tags []string `json:"tags"`
+	Input struct {
+		Name string   `json:"name"`
+		Tags []string `json:"tags"`
+	} `json:"input"`
 }
 
 func (request createItemRequest) Valid(ctx context.Context) (problems map[string]string) {
 	problems = make(map[string]string)
-	if request.Name == "" {
-		problems["Name"] = "request name cannot be empty"
+	if request.Input.Name == "" {
+		problems["input.name"] = "name cannot be empty"
 	}
 	return problems
 }
@@ -65,7 +67,7 @@ func HandleCreateItem(
 
 		av, err := attributevalue.MarshalMap(models.Item{
 			ID:   id,
-			Name: req.Args.Name,
+			Name: req.Args.Input.Name,
 		})
 
 		if err != nil {
