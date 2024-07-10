@@ -49,6 +49,7 @@ Resources:
       Environment:
         Variables:
           APPSYNC_API_ENDPOINT: !Ref GraphQLAPI
+          TABLE_NAME: !Ref ItemsTable
 
   ListItemsFunction:
     Type: "AWS::Serverless::Function"
@@ -68,6 +69,7 @@ Resources:
       Environment:
         Variables:
           APPSYNC_API_ENDPOINT: !Ref GraphQLAPI
+          TABLE_NAME: !Ref ItemsTable
 
   ListTagsFunction:
     Type: "AWS::Serverless::Function"
@@ -87,6 +89,7 @@ Resources:
       Environment:
         Variables:
           APPSYNC_API_ENDPOINT: !Ref GraphQLAPI
+          TABLE_NAME: !Ref ItemsTable
 
   ###############################################
   # APPSYNC API
@@ -119,6 +122,7 @@ Resources:
         }
 
         type Item {
+          id: ID!
           name: String!
           tags: [String]
         }
