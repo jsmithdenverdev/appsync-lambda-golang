@@ -4,6 +4,14 @@ Description: AWS SAM template to deploy a Golang Lambda function connected to an
 
 Resources:
   ###############################################
+  # TABLE
+  ###############################################
+  ItemsTable:
+    Type: "AWS::Serverless::SimpleTable"
+    Properties:
+      TableName: "items"
+
+  ###############################################
   # FUNCTIONS
   ###############################################
   CreateItemFunction:
@@ -17,11 +25,11 @@ Resources:
       Tracing: Active
       MemorySize: 128
       Timeout: 30
-      Policies:
-        - AWSLambdaBasicExecutionRole
+      Role: !GetAtt CreateItemLambdaExecutionRole.Arn
       Environment:
         Variables:
           APPSYNC_API_ENDPOINT: !Ref GraphQLAPI
+          TABLE_NAME: !Ref ItemsTable
 
   ReadItemFunction:
     Type: "AWS::Serverless::Function"
@@ -36,6 +44,8 @@ Resources:
       Timeout: 30
       Policies:
         - AWSLambdaBasicExecutionRole
+        - DynamoDBReadPolicy:
+            TableName: !Ref ItemsTable
       Environment:
         Variables:
           APPSYNC_API_ENDPOINT: !Ref GraphQLAPI
@@ -53,6 +63,27 @@ Resources:
       Timeout: 30
       Policies:
         - AWSLambdaBasicExecutionRole
+        - DynamoDBReadPolicy:
+            TableName: !Ref ItemsTable
+      Environment:
+        Variables:
+          APPSYNC_API_ENDPOINT: !Ref GraphQLAPI
+
+  ListTagsFunction:
+    Type: "AWS::Serverless::Function"
+    Metadata:
+      BuildMethod: go1.x # Indicates the build method for the function
+    Properties:
+      Handler: bootstrap
+      Runtime: provided.al2
+      CodeUri: cmd/list-tags
+      Tracing: Active
+      MemorySize: 128
+      Timeout: 30
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - DynamoDBReadPolicy:
+            TableName: !Ref ItemsTable
       Environment:
         Variables:
           APPSYNC_API_ENDPOINT: !Ref GraphQLAPI
@@ -89,6 +120,7 @@ Resources:
 
         type Item {
           name: String!
+          tags: [String]
         }
 
         type CreateItemPayload {
@@ -137,6 +169,16 @@ Resources:
         LambdaFunctionArn: !GetAtt ListItemsFunction.Arn
       ServiceRoleArn: !GetAtt AppSyncLambdaServiceRole.Arn
 
+  ListTagsLambdaDataSource:
+    Type: "AWS::AppSync::DataSource"
+    Properties:
+      ApiId: !GetAtt GraphQLAPI.ApiId
+      Name: "ListTagsLambdaDataSource"
+      Type: "AWS_LAMBDA"
+      LambdaConfig:
+        LambdaFunctionArn: !GetAtt ListTagsFunction.Arn
+      ServiceRoleArn: !GetAtt AppSyncLambdaServiceRole.Arn
+
   ###############################################
   # APPSYNC DATA RESOLVERS
   ###############################################
@@ -160,25 +202,7 @@ Resources:
       ApiId: !GetAtt GraphQLAPI.ApiId
       TypeName: "Query"
       FieldName: "item"
-      DataSourceName: !GetAtt CreateItemLambdaDataSource.Name
-      RequestMappingTemplate: |
-        {
-          "version": "2018-05-29",
-          "operation": "Invoke",
-          "payload": {
-              "id": $util.toJson($ctx.args.id)
-          }
-        }
-      ResponseMappingTemplate: |
-        $util.toJson($ctx.result)
-
-  ListItemsResolver:
-    Type: "AWS::AppSync::Resolver"
-    Properties:
-      ApiId: !GetAtt GraphQLAPI.ApiId
-      TypeName: "Query"
-      FieldName: "items"
-      DataSourceName: !GetAtt CreateItemLambdaDataSource.Name
+      DataSourceName: !GetAtt ReadItemLambdaDataSource.Name
       RequestMappingTemplate: |
         {
           "version": "2018-05-29",
@@ -187,11 +211,41 @@ Resources:
               "id": $util.toJson($ctx.args.id)
           }
         }
-      ResponseMappingTemplate: |
-        $util.toJson($ctx.result)
+
+  ListItemsResolver:
+    Type: "AWS::AppSync::Resolver"
+    Properties:
+      ApiId: !GetAtt GraphQLAPI.ApiId
+      TypeName: "Query"
+      FieldName: "items"
+      DataSourceName: !GetAtt ListItemsLambdaDataSource.Name
+      RequestMappingTemplate: |
+        {
+          "version": "2018-05-29",
+          "operation": "BatchInvoke",
+          "payload": {
+              "id": $util.toJson($ctx.args.id)
+          }
+        }
+
+  ListTagsResolver:
+    Type: "AWS::AppSync::Resolver"
+    Properties:
+      ApiId: !GetAtt GraphQLAPI.ApiId
+      TypeName: "Item"
+      FieldName: "tags"
+      DataSourceName: !GetAtt ListTagsLambdaDataSource.Name
+      RequestMappingTemplate: |
+        {
+          "version": "2018-05-29",
+          "operation": "BatchInvoke",
+          "payload": {
+              "id": $util.toJson($ctx.args.id)
+          }
+        }
 
   ###############################################
-  # APPSYNC LAMBDA EXECUTION ROLE
+  # LAMBDA EXECUTION ROLES
   # TODO: limit resource
   ###############################################
   AppSyncLambdaServiceRole:
@@ -213,6 +267,35 @@ Resources:
                 Action:
                   - "lambda:InvokeFunction"
                 Resource: "*"
+
+  CreateItemLambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: "DynamoDBAccessPolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:PutItem
+                  - dynamodb:GetItem
+                Resource:
+                  - !GetAtt "ItemsTable.Arn"
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource:
+                  - arn:aws:logs:*:*:*
 
 Outputs:
   GraphQLAPIEndpoint:
