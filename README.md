@@ -4,11 +4,17 @@ A sample AWS AppSync GraphQL API leveraging lambda functions as resolvers.
 
 ## Why?
 
-GraphQL (when done right) is a fantastic way to build highly expressive API's. Having the flexibility to back resolvers using lambda functions unlocks a new level of customization and scalability. Using this approach we can independently scale any part of our API, giving us a huge amount of flexibility in performance tuning. AppSync allows us to define regular invoke and batch invoke resolvers, allowing us to write lambda functions that act as dataloaders, avoiding the N+1 query problem.
+GraphQL (when implemented correctly) is a fantastic way to design highly expressive API's. 
+
+With a bit of additional configuration, AWS AppSync allows us to define Lambda functions as resolvers, unlocking a new level of customization and scalability.
+
+Using this approach we can independently develop, deploy, and scale any resolver in our API, giving us a huge amount of flexibility in how we design and maintain our system.
+
+And AWS AppSync allows us to perform regular and batch invocation of lambda resolvers, allowing us to write lambda functions that avoid the N + 1 query problem.
 
 ## GraphQL Schema
 
-The resulting GraphQL API has the following schema.
+This sample GraphQL API has the following schema.
 
 ```graphql
 input CreateItemInput {
@@ -41,11 +47,11 @@ type Mutation {
 | Query    | `item`       | [ReadItemFunction](#readitemfunction)     | invoke       |
 | Query    | `items`      | [ListItemsFunction](#listitemsfunction)   | batch invoke |
 
-## Functions
+## Lambda Functions
 
 ### CreateItemFunction
 
-A lambda function serving the `createItem` mutation. Returns [`responses.CreateItem`](internal/responses/create_item.go) using the `Name` from [`requests.CreateItem`](internal/requests/create_item.go).
+Resolver for `createItem` mutation. Returns [`responses.CreateItem`](internal/responses/create_item.go) using the `Name` from [`requests.CreateItem`](internal/requests/create_item.go).
 
 | meta    | value                                                                |
 | ------- | -------------------------------------------------------------------- |
@@ -55,7 +61,7 @@ A lambda function serving the `createItem` mutation. Returns [`responses.CreateI
 
 ### ReadItemFunction
 
-A lambda function serving the `item` query. Returns [`responses.Item`](internal/responses/item.go).
+Resolver for `item` query. Returns [`responses.Item`](internal/responses/item.go).
 
 #### ⛔️ Note: Currently returns a not implemented error.
 
@@ -67,7 +73,7 @@ A lambda function serving the `item` query. Returns [`responses.Item`](internal/
 
 ### ListItemsFunction
 
-A lambda function serving the `items` query. Returns [`responses.Item[]`](internal/responses/item.go). This handler is invoked as a batch invoke and operates in a similar fashion to a data loader.
+Resolver for `items` query. Returns [`responses.Item[]`](internal/responses/item.go). This handler is invoked as a batch invoke and operates in a similar fashion to a data loader.
 
 #### ⛔️ Note: Currently returns a not implemented error.
 
