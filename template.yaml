@@ -243,6 +243,12 @@ Resources:
             "args": $util.toJson($ctx.args)
           }
         }
+      ResponseMappingTemplate: |
+        #if( $context.result && $context.result.error )
+              $utils.error($context.result.error)
+        #else
+              $utils.toJson($context.result.value)
+        #end
 
   ListTagsResolver:
     Type: "AWS::AppSync::Resolver"
@@ -259,6 +265,12 @@ Resources:
             "args": $util.toJson($ctx.args)
           }
         }
+      ResponseMappingTemplate: |
+        #if( $context.result && $context.result.error )
+              $utils.error($context.result.error)
+        #else
+              $utils.toJson($context.result.value)
+        #end
 
   ###############################################
   # EXECUTION ROLES
