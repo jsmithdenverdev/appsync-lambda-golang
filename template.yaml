@@ -99,6 +99,10 @@ Resources:
     Properties:
       Name: "GolangGraphQLAPI"
       AuthenticationType: API_KEY
+      LogConfig:
+        CloudWatchLogsRoleArn: !GetAtt AppSyncLoggingRole.Arn
+        FieldLogLevel: ERROR
+      XrayEnabled: true
 
   ###############################################
   # APPSYNC API KEY
@@ -217,6 +221,12 @@ Resources:
               "args": $util.toJson($ctx.args)
           }
         }
+      ResponseMappingTemplate: |
+        #if( $context.result && $context.result.error )
+              $utils.error($context.result.error)
+        #else
+              $utils.toJson($context.result.value)
+        #end
 
   ListItemsResolver:
     Type: "AWS::AppSync::Resolver"
@@ -251,7 +261,7 @@ Resources:
         }
 
   ###############################################
-  # LAMBDA EXECUTION ROLES
+  # EXECUTION ROLES
   # TODO: limit resource
   ###############################################
   AppSyncLambdaServiceRole:
@@ -295,6 +305,30 @@ Resources:
                   - dynamodb:GetItem
                 Resource:
                   - !GetAtt "ItemsTable.Arn"
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource:
+                  - arn:aws:logs:*:*:*
+
+  AppSyncLoggingRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - appsync.amazonaws.com
+            Action: "sts:AssumeRole"
+      Policies:
+        - PolicyName: "AppSyncLoggingPolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
               - Effect: Allow
                 Action:
                   - logs:CreateLogGroup

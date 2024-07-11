@@ -41,7 +41,7 @@ func (request createItemRequest) Valid(ctx context.Context) (problems map[string
 }
 
 type createItemResponse struct {
-	Item models.Item
+	Item models.Item `json:"item"`
 }
 
 // HandleCreateItem is the handler for the CreateItem Lambda function.
@@ -106,8 +106,8 @@ func HandleCreateItem(
 			return response, errInternalServer
 		}
 
-		return createItemResponse{
-			Item: item,
-		}, nil
+		response.Item = item
+
+		return response, nil
 	}
 }
