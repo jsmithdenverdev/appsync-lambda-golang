@@ -121,17 +121,18 @@ Resources:
     Properties:
       ApiId: !GetAtt GraphQLAPI.ApiId
       Definition: |
-        input CreateItemInput {
-          name: String!
-        }
-
         type Item {
           id: ID!
           name: String!
-          tags: [String]
+          tags: [String!]!
         }
 
-        type CreateItemPayload {
+        input CreateItemInput {
+          name: String!
+          tags: [String!]
+        }
+
+        type CreateItemResult {
           item: Item!
         }
 
@@ -141,7 +142,7 @@ Resources:
         }
 
         type Mutation {
-          createItem(input: CreateItemInput!): CreateItemPayload!
+          createItem(input: CreateItemInput!): CreateItemResult!
         }
 
   ###############################################
