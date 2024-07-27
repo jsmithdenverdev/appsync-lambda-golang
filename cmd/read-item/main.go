@@ -10,13 +10,13 @@ import (
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
-	"github.com/jsmithdenverdev/appsync-lambda-golang/internal/handlers"
+	"github.com/jsmithdenverdev/appsync-lambda-golang/internal/resolvers"
 )
 
 var (
 	logger         *slog.Logger
 	dynamodbclient *dynamodb.Client
-	cfg            handlers.HandleReadItemConfig
+	cfg            resolvers.HandleReadItemConfig
 )
 
 const (
@@ -59,7 +59,7 @@ func init() {
 }
 
 func main() {
-	lambda.Start(handlers.HandleReadItem(
+	lambda.Start(resolvers.HandleReadItem(
 		cfg,
 		logger,
 		dynamodbclient,

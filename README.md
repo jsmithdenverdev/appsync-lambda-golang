@@ -57,7 +57,7 @@ Resolver for `createItem` mutation. Returns [`responses.CreateItem`](internal/re
 | ------- | -------------------------------------------------------------------- |
 | runtime | go1.x                                                                |
 | uri     | [cmd/create-item/main.go](cmd/create-item/main.go)                   |
-| handler | [internal/handlers/create_item.go](internal/handlers/create_item.go) |
+| handler | [internal/resolvers/create_item.go](internal/resolvers/create_item.go) |
 
 ### ReadItemFunction
 
@@ -69,7 +69,7 @@ Resolver for `item` query. Returns [`responses.Item`](internal/responses/item.go
 | ------- | ---------------------------------------------------------------- |
 | runtime | go1.x                                                            |
 | uri     | [cmd/read-item/main.go](cmd/read-item/main.go)                   |
-| handler | [internal/handlers/read_item.go](internal/handlers/read_item.go) |
+| handler | [internal/resolvers/read_item.go](internal/resolvers/read_item.go) |
 
 ### ListItemsFunction
 
@@ -81,7 +81,7 @@ Resolver for `items` query. Returns [`responses.Item[]`](internal/responses/item
 | ------- | ------------------------------------------------------------------ |
 | runtime | go1.x                                                              |
 | uri     | [cmd/list-items/main.go](cmd/list-items/main.go)                   |
-| handler | [internal/handlers/list_items.go](internal/handlers/list_items.go) |
+| handler | [internal/resolvers/list_items.go](internal/resolvers/list_items.go) |
 
 ## Building
 
