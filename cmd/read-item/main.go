@@ -59,9 +59,14 @@ func init() {
 }
 
 func main() {
-	lambda.Start(resolvers.HandleReadItem(
-		cfg,
-		logger,
-		dynamodbclient,
-	))
+
+	lambda.Start(
+		resolvers.WithBatchInvoke(
+			resolvers.HandleReadItem(
+				cfg,
+				logger,
+				dynamodbclient,
+			),
+		),
+	)
 }

@@ -124,7 +124,7 @@ Resources:
         type Item {
           id: ID!
           name: String!
-          tags: [String!]!
+          tags: [String!]
         }
 
         input CreateItemInput {
