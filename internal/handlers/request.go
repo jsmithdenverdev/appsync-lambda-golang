@@ -1,15 +1,15 @@
-package resolvers
+package handlers
 
 import (
 	"context"
 )
 
-// A request represents a GraphQL request that has been mapped from an AWS
+// A Request represents a GraphQL Request that has been mapped from an AWS
 // AppSync API into a standardized input template for Lambda functions using
 // Velocity Template Language
 //
-// The VTL for a request looks like so. The full arguments from the GraphQL
-// request are attached to an args property in the payload.
+// The VTL for a Request looks like so. The full arguments from the GraphQL
+// Request are attached to an args property in the payload.
 //
 // ```
 //
@@ -22,10 +22,10 @@ import (
 //	}
 //
 // ```
-// request implements validator and calls the validate method of its args
-// property allowing enforcing request validation to be implemented for all
+// Request implements validator and calls the validate method of its args
+// property allowing enforcing Request validation to be implemented for all
 // requests.
-type request[T validator] struct {
+type Request[T Validator] struct {
 	// Args from the original GraphQL request.
 	//
 	// Args implements validator and can be validated.
@@ -33,6 +33,6 @@ type request[T validator] struct {
 }
 
 // Valid validates the args of the request.
-func (req request[T]) Valid(ctx context.Context) (problems map[string]string) {
+func (req Request[T]) Valid(ctx context.Context) (problems map[string]string) {
 	return req.Args.Valid(ctx)
 }

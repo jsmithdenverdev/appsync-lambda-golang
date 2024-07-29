@@ -1,8 +1,10 @@
-package resolvers
+package handlers
 
 import (
 	"context"
 	"errors"
+	"fmt"
+	"log/slog"
 )
 
 type BatchInvokeResponse[T any] struct {
@@ -26,5 +28,13 @@ func WithBatchInvoke[T, R any](next func(ctx context.Context, req []R) ([]T, []e
 		}
 
 		return results, nil
+	}
+}
+
+func resolveError[T any](name string, logger *slog.Logger) func(ctx context.Context, err error) (T, error) {
+	return func(ctx context.Context, err error) (T, error) {
+		logger.ErrorContext(ctx, fmt.Sprintf("resolver %s failed", name), "error", err)
+		var t T
+		return t, errInternalServer
 	}
 }

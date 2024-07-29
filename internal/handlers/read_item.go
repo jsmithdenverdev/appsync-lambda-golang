@@ -1,4 +1,4 @@
-package resolvers
+package handlers
 
 import (
 	"context"
@@ -53,8 +53,8 @@ func HandleReadItem(
 	config HandleReadItemConfig,
 	logger *slog.Logger,
 	dynamodbclient handleReadItemDynamoDBClient,
-) func(ctx context.Context, reqs []request[readItemRequest]) ([]readItemResponse, []error) {
-	return func(ctx context.Context, reqs []request[readItemRequest]) ([]readItemResponse, []error) {
+) func(ctx context.Context, reqs []Request[readItemRequest]) ([]readItemResponse, []error) {
+	return func(ctx context.Context, reqs []Request[readItemRequest]) ([]readItemResponse, []error) {
 		var (
 			responses = make([]readItemResponse, len(reqs))
 			keys      = make([]map[string]types.AttributeValue, len(reqs))

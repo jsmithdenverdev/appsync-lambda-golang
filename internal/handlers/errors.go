@@ -1,4 +1,4 @@
-package resolvers
+package handlers
 
 import (
 	"context"
@@ -13,9 +13,9 @@ var (
 )
 
 // An error stemming from a request that returned problems from Valid.
-type errInvalidRequest[T validator] struct {
+type errInvalidRequest[T Validator] struct {
 	ctx     context.Context
-	request request[T]
+	request Request[T]
 }
 
 // Error returns the problems for the request.

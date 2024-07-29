@@ -1,4 +1,4 @@
-package resolvers
+package handlers
 
 import (
 	"context"
@@ -46,8 +46,8 @@ func HandleListItems(
 	config HandleListItemsConfig,
 	logger *slog.Logger,
 	dynamodbclient handleListItemsDynamoDBClient,
-) func(ctx context.Context, req request[listItemsRequest]) (listItemsResponse, error) {
-	return func(ctx context.Context, req request[listItemsRequest]) (listItemsResponse, error) {
+) func(ctx context.Context, req Request[listItemsRequest]) (listItemsResponse, error) {
+	return func(ctx context.Context, req Request[listItemsRequest]) (listItemsResponse, error) {
 		var response listItemsResponse
 
 		return response, nil

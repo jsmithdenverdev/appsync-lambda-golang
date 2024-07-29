@@ -8,37 +8,40 @@ import (
 	"strings"
 
 	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/aws/aws-sdk-go-v2/config"
+	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
-	"github.com/jsmithdenverdev/appsync-lambda-golang/internal/resolvers"
-)
-
-var (
-	logger         *slog.Logger
-	dynamodbclient *dynamodb.Client
-	cfg            resolvers.HandleCreateItemConfig
+	"github.com/jsmithdenverdev/appsync-lambda-golang/internal/config"
+	"github.com/jsmithdenverdev/appsync-lambda-golang/internal/handlers"
+	"github.com/jsmithdenverdev/appsync-lambda-golang/internal/middleware"
+	"github.com/jsmithdenverdev/appsync-lambda-golang/internal/services"
 )
 
 const (
 	envTableName = "TABLE_NAME"
+	resolverName = "createItem"
 )
 
-func init() {
+func main() {
+	if err := run(); err != nil {
+		fmt.Fprintf(os.Stderr, "run failed: %s", err.Error())
+	}
+}
+
+func run() error {
+	var cfg config.Config
 	var missingcfg []string
 
-	logger = slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
 	// Load default AWS config
 	// If loading fails log an error and exit
-	awscfg, err := config.LoadDefaultConfig(context.Background())
+	awscfg, err := awsconfig.LoadDefaultConfig(context.Background())
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed to load default aws config: %s", err.Error())
-		os.Exit(1)
-		return
+		return fmt.Errorf("failed to load default aws config: %w", err)
 	}
 
 	// Initialize dynamodb client
-	dynamodbclient = dynamodb.NewFromConfig(awscfg)
+	dynamodbclient := dynamodb.NewFromConfig(awscfg)
 
 	// Load environment variables
 	cfg.TableName = os.Getenv(envTableName)
@@ -48,20 +51,30 @@ func init() {
 
 	// If any environment variables are missing log an error and exit
 	if len(missingcfg) > 0 {
-		fmt.Fprintf(
-			os.Stderr,
+		return fmt.Errorf(
 			"failed to load the following environment variables: %s",
 			strings.Join(missingcfg, ", "),
 		)
-		os.Exit(1)
-		return
 	}
-}
 
-func main() {
-	lambda.Start(resolvers.HandleCreateItem(
-		cfg,
+	service := services.NewItem(
 		logger,
 		dynamodbclient,
-	))
+		cfg,
+	)
+
+	lambda.Start(
+		middleware.Apply(
+			handlers.HandleCreateItem(service),
+			middleware.WithRecovery[handlers.Request[handlers.CreateItemRequest], handlers.CreateItemResponse](
+				logger,
+				resolverName,
+			),
+			middleware.WithErrorLogging[handlers.Request[handlers.CreateItemRequest], handlers.CreateItemResponse](
+				logger,
+				resolverName,
+			),
+		))
+
+	return nil
 }
